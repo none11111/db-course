@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- 用户头像和基本信息卡片 -->
+            <div class="card mb-5">
+                <!-- 卡片头部 -->
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex flex-column align-items-center">
+                        <h1 class="display-5 mb-2">{{ user.UserName }}</h1>
+                        <p class="text-white-80">注册时间：{{ user.RegistrationDate.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                </div>
+                
+                <!-- 头像 -->
+                <div class="d-flex justify-content-center mt-4 mb-4">
+                    {% if user.avatar_url %}
+                    <img src="{{ user.avatar_url }}" alt="用户头像" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-gray-600" style="width: 120px; height: 120px; border: 4px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <i class="fas fa-user display-4"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- 用户统计信息 -->
+                <div class="row text-center mb-4">
+                    <div class="col">
+                        <div class="h4 font-weight-bold">{{ user.posts.count() }}</div>
+                        <div class="text-muted">发布帖子</div>
+                    </div>
+                    <div class="col">
+                        <div class="h4 font-weight-bold">{{ user.Reputation or 0 }}</div>
+                        <div class="text-muted">声望值</div>
+                    </div>
+                    <div class="col">
+                        <div class="h4 font-weight-bold">{{ user.comments.count() }}</div>
+                        <div class="text-muted">评论数量</div>
+                    </div>
+                </div>
+                
+                <!-- 表单内容 -->
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('auth.profile') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-6">
+                            <h4 class="text-primary mb-4">个人信息设置</h4>
+
+                            
+                            {% if form.UserBio %}
+                            <div class="form-group mb-4">
+                                {{ form.UserBio.label(class="form-label") }}
+                                {{ form.UserBio(class="form-control" + (' is-invalid' if form.UserBio.errors else ''), rows="4", placeholder="介绍一下自己吧...") }}
+                                {% for error in form.UserBio.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if form.AvatarURL %}
+                            <div class="form-group mb-4">
+                                {{ form.AvatarURL.label(class="form-label") }}
+                                {{ form.AvatarURL(class="form-control" + (' is-invalid' if form.AvatarURL.errors else ''), placeholder="输入头像图片URL") }}
+                                <small class="form-text text-muted">支持JPG、PNG格式，建议尺寸200x200px</small>
+                                {% for error in form.AvatarURL.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-primary mb-4">我的帖子</h4>
+                            {% if user.posts %}
+                            <div class="posts-list">
+                                {% for post in posts %}
+                                <div class="card mb-3 shadow-sm">
+                                    <div class="card-body">
+                                        <a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}" class="text-dark font-weight-medium">
+                                            {{ post.PostTitle }}
+                                        </a>
+                                        
+                                        <!-- 帖子状态标签 -->
+                                        <div class="mt-2">
+                                            {% if post.Status == 'approved' %}
+                                            <span class="badge badge-success">已通过</span>
+                                            {% elif post.Status == 'pending' %}
+                                            <span class="badge badge-warning">待审核</span>
+                                            {% elif post.Status == 'rejected' %}
+                                            <span class="badge badge-danger">已拒绝</span>
+                                            {% elif post.Status == 'active' %}
+                                            <span class="badge badge-info">活跃</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mt-2 text-sm text-muted">
+                                            <i class="fas fa-clock"></i> {{ post.CreationTime.strftime('%Y-%m-%d %H:%M') }}
+                                            <span class="mx-2">•</span>
+                                            <i class="fas fa-comment"></i> {{ post.comments.count() }}
+                                            <span class="mx-2">•</span>
+                                            <i class="fas fa-eye"></i> {{ post.ViewCount or 0 }}
+                                        </div>
+                                        
+                                        <!-- 审核意见 -->
+                                        {% if post.Status == 'rejected' and post.ReviewComment %}
+                                        <div class="mt-2 alert alert-danger">
+                                            <strong>审核意见:</strong> {{ post.ReviewComment }}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- 操作按钮 -->
+                                        <div class="mt-3">
+                                            <a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}" class="btn btn-sm btn-primary mr-2">查看详情</a>
+                                            {% if current_user.UserID == post.UserID or current_user.is_admin() %}
+                                            <a href="{{ url_for('forum.edit_post', post_id=post.PostID) }}" class="btn btn-sm btn-info mr-2">编辑</a>
+                                            <form method="POST" action="{{ url_for('forum.delete_post', post_id=post.PostID) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除这个帖子吗？')">删除</button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info text-center py-5">
+                                <i class="fas fa-file-alt display-4 block mb-3"></i>
+                                <p class="mb-0">您还没有发布过帖子</p>
+                                <a href="{{ url_for('forum.create_post') }}" class="btn btn-primary mt-3">发布第一篇帖子</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mt-4">
+                            {{ form.submit(class="btn btn-primary btn-lg btn-block") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}论坛统计{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">论坛统计</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted">总用户</h5>
+                            <p class="card-text text-primary display-4">{{ stats.total_users }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted">总帖子</h5>
+                            <p class="card-text text-primary display-4">{{ stats.total_posts }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted">今日新增</h5>
+                            <p class="card-text text-success display-4">{{ stats.today_posts }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted">总评论</h5>
+                            <p class="card-text text-primary display-4">{{ stats.total_comments }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

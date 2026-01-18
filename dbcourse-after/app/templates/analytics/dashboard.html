@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">数据分析平台</h1>
+    
+    <!-- 统计卡片区域 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">总用户数</h5>
+                    <p class="card-text text-3xl" id="total-users">--</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">活跃用户</h5>
+                    <p class="card-text text-3xl" id="active-users">--</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">总帖子数</h5>
+                    <p class="card-text text-3xl" id="total-posts">--</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">总评论数</h5>
+                    <p class="card-text text-3xl" id="total-comments">--</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 今日数据和活跃数据 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">今日新增</h5>
+                    <p class="card-text text-2xl">今日新增帖子: <span id="today-posts" class="text-primary font-weight-bold">--</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">活跃数据</h5>
+                    <p class="card-text">活跃帖子: <span id="active-posts" class="text-success font-weight-bold">--</span></p>
+                    <p class="card-text">已批准评论: <span id="approved-comments" class="text-success font-weight-bold">--</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">最近7天帖子趋势</h5>
+                    <canvas id="posts-chart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分类统计和热门标签 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">各分类帖子数量</h5>
+                    <ul class="list-group" id="category-stats">
+                        <li class="list-group-item">加载中...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">热门标签 TOP 10</h5>
+                    <div class="tag-cloud" id="tag-stats">
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入Chart.js用于图表展示 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取统计数据
+        fetch('/analytics/stats', { headers: { 'Accept': 'application/json' } })
+            .then(response => response.json())
+            .then(data => {
+                // 更新统计卡片数据
+                document.getElementById('total-users').textContent = data.total_users;
+                document.getElementById('active-users').textContent = data.active_users;
+                document.getElementById('total-posts').textContent = data.total_posts;
+                document.getElementById('active-posts').textContent = data.active_posts;
+                document.getElementById('total-comments').textContent = data.total_comments;
+                document.getElementById('approved-comments').textContent = data.approved_comments;
+                document.getElementById('today-posts').textContent = data.today_posts;
+                
+                // 渲染帖子趋势图表
+                const ctx = document.getElementById('posts-chart').getContext('2d');
+                const dates = data.daily_posts.map(item => item.date);
+                const counts = data.daily_posts.map(item => item.count);
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: '每日帖子数',
+                            data: counts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // 渲染分类统计
+                const categoryStats = document.getElementById('category-stats');
+                categoryStats.innerHTML = '';
+                data.category_stats.forEach(stat => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.innerHTML = `
+                        <span>${stat.category}</span>
+                        <span class="badge badge-primary badge-pill">${stat.count}</span>
+                    `;
+                    categoryStats.appendChild(li);
+                });
+                
+                // 渲染热门标签
+                const tagStats = document.getElementById('tag-stats');
+                tagStats.innerHTML = '';
+                data.tag_stats.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'badge badge-secondary m-1';
+                    tagEl.style.fontSize = Math.max(12, Math.min(20, 12 + tag.count * 0.5)) + 'px';
+                    tagEl.textContent = `${tag.tag} (${tag.count})`;
+                    tagStats.appendChild(tagEl);
+                });
+            })
+            .catch(error => {
+                console.error('获取统计数据失败:', error);
+                alert('获取统计数据失败，请稍后重试');
+            });
+    });
+</script>
+
+<style>
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- 帖子内容 -->
+            <div class="card mb-5">
+                <div class="card-header">
+                    <h2>{{ post.PostTitle }}</h2>
+                </div>
+                <div class="card-body">
+                    <!-- 帖子元数据 -->
+                    <div class="mb-3 text-muted">
+                        <span class="mr-3"><i class="fas fa-user"></i> {{ post.author.UserName }}</span>
+                        <span class="mr-3"><i class="fas fa-calendar-alt"></i> {{ post.PostDate.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="mr-3"><i class="fas fa-comment"></i> {{ post.comments|length }} 评论</span>
+                    </div>
+                    
+                    <!-- 帖子分类 -->
+                    <div class="mb-3">
+                        <a href="{{ url_for('main.category_posts', category_id=post.category.CategoryID) }}" 
+                           class="badge badge-primary">{{ post.category.CategoryName }}</a>
+                    </div>
+                    
+                    <!-- 帖子内容 -->
+                    <div class="mb-4">
+                        {{ post.PostContent|safe }}
+                    </div>
+                    
+                    <!-- 标签 -->
+                    {% if post.tags %}
+                    <div class="mb-4">
+                        <strong>标签：</strong>
+                        {% for tag in post.tags %}
+                        <a href="{{ url_for('main.tag_posts', tag_id=tag.TagID) }}" 
+                           class="badge badge-secondary mr-1">{{ tag.TagName }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 操作按钮 -->
+                    <div class="text-right">
+                        {% if current_user.is_authenticated and current_user.UserID == post.UserID %}
+                        <a href="{{ url_for('main.edit_post', post_id=post.PostID) }}" class="btn btn-outline-primary btn-sm mr-2">编辑</a>
+                        <form method="POST" action="{{ url_for('main.delete_post', post_id=post.PostID) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要删除这篇帖子吗？');">删除</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 评论区域 -->
+            <div class="card mb-5">
+                <div class="card-header">
+                    <h4>评论 ({{ comments|length }})</h4>
+                </div>
+                <div class="card-body">
+                    <!-- 评论表单 -->
+                    {% if current_user.is_authenticated %}
+                    <div class="mb-4">
+                        <form method="POST" action="{{ url_for('main.add_comment', post_id=post.PostID) }}">
+                            {{ form.hidden_tag() if form }}
+                            <div class="form-group">
+                                <textarea class="form-control" rows="3" name="content" placeholder="写下你的评论..."></textarea>
+                                <input type="hidden" name="parent_id" id="parent_id" value="">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">发表评论</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-4">请<a href="{{ url_for('auth.login') }}">登录</a>后发表评论</p>
+                    {% endif %}
+                    
+                    <!-- 评论列表 -->
+                    {% if comments %}
+                    <div class="comments">
+                        {% for comment in comments %}
+                        {% include '_comment.html' %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">暂无评论，来发表第一条评论吧！</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div class="col-md-4">
+            <!-- 作者信息 -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5>作者信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="user-avatar mb-2" style="width: 80px; height: 80px; background-color: #f8f9fa; border-radius: 50%; margin: 0 auto;"></div>
+                        <h6>{{ post.author.UserName }}</h6>
+                        <p class="text-sm text-muted">注册于 {{ post.author.RegistrationDate.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge badge-info">声望: {{ post.author.Reputation or 0 }}</span>
+                        <span class="badge badge-secondary ml-2">帖子: {{ post.author.posts|length }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 相关分类 -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5>相关分类</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for category in categories %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.category_posts', category_id=category.CategoryID) }}">{{ category.CategoryName }}</a>
+                            <span class="badge badge-primary">{{ category.posts|length }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 展开/折叠回复
+            document.querySelectorAll('.toggle-replies').forEach(button => {
+                button.addEventListener('click', function() {
+                    const repliesContainer = this.nextElementSibling;
+                    repliesContainer.style.display = repliesContainer.style.display === 'none' ? 'block' : 'none';
+                    this.textContent = repliesContainer.style.display === 'none' ? '展开回复' : '收起回复';
+                });
+            });
+            
+            // 回复按钮逻辑，支持多级回复
+            document.querySelectorAll('.reply-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const commentId = this.getAttribute('data-comment-id');
+                    const userName = this.getAttribute('data-user-name');
+                    
+                    // 设置父评论ID到隐藏字段
+                    document.getElementById('parent_id').value = commentId;
+                    
+                    // 更新主评论框的占位符，显示正在回复的用户
+                    const commentTextarea = document.querySelector('textarea[name="content"]');
+                    if (commentTextarea) {
+                        commentTextarea.placeholder = `回复 @${userName}`;
+                        commentTextarea.value = ''; // 清空文本框
+                        commentTextarea.focus();
+                    }
+                    
+                    // 平滑滚动到评论框
+                    document.querySelector('form[action="{{ url_for(\"main.add_comment\", post_id=post.PostID) }}"]').scrollIntoView({ 
+                        behavior: 'smooth' 
+                    });
+                });
+            });
+            
+            // 取消回复功能
+            document.querySelectorAll('.cancel-reply').forEach(button => {
+                button.addEventListener('click', function() {
+                    // 隐藏特定评论的回复表单
+                    const formElement = this.closest('form');
+                    if (formElement) {
+                        formElement.style.display = 'none';
+                    }
+                    
+                    // 重置主评论框
+                    document.getElementById('parent_id').value = '';
+                    const commentTextarea = document.querySelector('textarea[name="content"]');
+                    if (commentTextarea) {
+                        commentTextarea.placeholder = '写下你的评论...';
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-10 offset-md-1 mt-4">
+            <!-- 帖子详情卡片 -->
+            <div class="post-card post-detail-card">
+                <!-- 帖子标题 -->
+                <h1 class="post-detail-title">{{ post.PostTitle }}</h1>
+                
+                <!-- 帖子元信息 -->
+                <div class="post-meta mb-4">
+                    <div>
+                        <span class="author-info">
+                            <i class="fa fa-user-circle"></i> 
+                            <a href="{{ url_for('auth.profile', user_id=post.author_id) }}">{{ post.author.username }}</a>
+                        </span>
+                        <span class="meta-divider">•</span>
+                        <span class="time-info"><i class="fa fa-clock-o"></i> {{ post.CreationTime.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="meta-divider">•</span>
+                        <span class="view-info"><i class="fa fa-eye"></i> {{ post.ViewCount or 0 }} 浏览</span>
+                    </div>
+                    
+                    <!-- 管理员操作 -->
+                    {% if current_user.is_admin or current_user.UserID == post.author_id %}
+                    <div class="post-actions">
+                        <a href="{{ url_for('forum.edit_post', post_id=post.PostID) }}" class="btn btn-secondary btn-sm mr-2">
+                            <i class="fa fa-pencil"></i> 编辑
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal">
+                            <i class="fa fa-trash"></i> 删除
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- 帖子分类和标签 -->
+                <div class="post-tags mb-4">
+                    <div class="mb-2">
+                        <strong>分类:</strong>
+                        {% if post.categories %}
+                            {% for category in post.categories %}
+                            <a href="{{ url_for('forum.category_posts', category_id=category.CategoryID) }}" class="category-badge">
+                                {{ category.CategoryName }}
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">未分类</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <strong>标签:</strong>
+                        {% if post.tags %}
+                            {% for tag in post.tags %}
+                            <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="category-badge bg-secondary">
+                                {{ tag.TagName }}
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">无标签</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 帖子内容 -->
+                <div class="post-content" id="post-content">
+                    {{ post.PostContent|safe }}
+                </div>
+                
+                <!-- 点赞按钮 -->
+                <div class="post-interactions mt-6">
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fa fa-thumbs-up"></i> 点赞 (0)
+                    </button>
+                    <a href="#comments-section" class="btn btn-outline-secondary ml-2">
+                        <i class="fa fa-comment"></i>
+                        <span>{{ post.comments.count() }}</span>
+                        <span>评论</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 评论区 -->
+            <div class="comments-section mt-6" id="comments-section">
+                <h2 class="comments-title">评论 ({{ post.comments.count() }})</h2>
+                
+                <!-- 发表评论表单 -->
+                {% if current_user.is_authenticated %}
+                <div class="comment-form-container mb-6">
+                    <form method="POST" action="{{ url_for('forum.add_comment', post_id=post.PostID) }}">
+                        {{ form.hidden_tag() }}
+                        <div class="form-group">
+                            {{ form.content.label }}
+                            {{ form.content(class="form-control comment-form", rows=3, placeholder="写下你的评论...") }}
+                            {% if form.content.errors %}
+                            <div class="text-danger">
+                                {% for error in form.content.errors %}
+                                <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">发表评论</button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-4">
+                    请 <a href="{{ url_for('auth.login') }}">登录</a> 后发表评论
+                </div>
+                {% endif %}
+                
+                <!-- 评论列表 -->
+                <div class="comments-list">
+                    {% for comment in comments.items %}
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <div class="comment-author">
+                                <a href="{{ url_for('auth.profile', user_id=comment.user_id) }}">{{ comment.author.username }}</a>
+                                <span class="comment-time">{{ comment.CreationTime.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            
+                            <!-- 评论操作 -->
+                            {% if current_user.is_admin or current_user.UserID == comment.user_id %}
+                            <div class="comment-actions">
+                                <button type="button" class="btn btn-sm text-danger" data-toggle="modal" data-target="#deleteCommentModal{{ comment.CommentID }}">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="comment-content">
+                            {{ comment.Content|safe }}
+                        </div>
+                        
+                        <!-- 嵌套回复 -->
+                        {% if comment.replies %}
+                        <div class="replies-list">
+                            {% for reply in comment.replies %}
+                            <div class="reply-item">
+                                <div class="reply-header">
+                                    <div class="reply-author">
+                                        <a href="{{ url_for('auth.profile', user_id=reply.user_id) }}">{{ reply.author.username }}</a>
+                                        <span class="reply-time">{{ reply.CreationTime.strftime('%Y-%m-%d %H:%M') }}</span>
+                                    </div>
+                                    
+                                    {% if current_user.is_admin or current_user.UserID == reply.user_id %}
+                                    <div class="reply-actions">
+                                        <button type="button" class="btn btn-sm text-danger" data-toggle="modal" data-target="#deleteReplyModal{{ reply.CommentID }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="reply-content">
+                                    {{ reply.Content|safe }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 回复按钮 -->
+                        {% if current_user.is_authenticated %}
+                        <div class="comment-footer">
+                            <button class="reply-btn btn btn-sm text-primary" data-comment-id="{{ comment.CommentID }}">
+                                <i class="fa fa-reply"></i> 回复
+                            </button>
+                        </div>
+                        
+                        <!-- 回复表单 -->
+                        <form method="POST" action="{{ url_for('forum.add_reply', post_id=post.PostID, comment_id=comment.CommentID) }}" class="reply-form d-none">
+                            {{ reply_form.hidden_tag() }}
+                            <div class="form-group">
+                                {{ reply_form.content(class="form-control", rows=2, placeholder="回复 @{{ comment.author.username }}...") }}
+                                {% if reply_form.content.errors %}
+                                <div class="text-danger">
+                                    {% for error in reply_form.content.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm mr-2">回复</button>
+                            <button type="button" class="cancel-reply-btn btn btn-secondary btn-sm">取消</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- 分页 -->
+                {% if comments.pages > 1 %}
+                <div class="mt-4">
+                    {{ render_pagination(comments, 'forum.post_detail', post_id=post.PostID) }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除帖子模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                确定要删除这篇帖子吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <form action="{{ url_for('forum.delete_post', post_id=post.PostID) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除评论模态框 -->
+{% for comment in comments.items %}
+<div class="modal fade" id="deleteCommentModal{{ comment.CommentID }}" tabindex="-1" role="dialog" aria-labelledby="deleteCommentModalLabel{{ comment.CommentID }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCommentModalLabel{{ comment.CommentID }}">确认删除</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                确定要删除这条评论吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <form action="{{ url_for('forum.delete_comment', post_id=post.PostID, comment_id=comment.CommentID) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 删除回复模态框 -->
+{% for comment in comments.items %}
+    {% for reply in comment.replies %}
+    <div class="modal fade" id="deleteReplyModal{{ reply.CommentID }}" tabindex="-1" role="dialog" aria-labelledby="deleteReplyModalLabel{{ reply.CommentID }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteReplyModalLabel{{ reply.CommentID }}">确认删除</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    确定要删除这条回复吗？此操作不可恢复。
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <form action="{{ url_for('forum.delete_comment', post_id=post.PostID, comment_id=reply.CommentID) }}" method="POST">
+                        <button type="submit" class="btn btn-danger">删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+        // 回复功能
+        $('.reply-btn').click(function() {
+            var commentId = $(this).data('comment-id');
+            $(this).closest('.comment-footer').next('.reply-form').toggleClass('d-none');
+        });
+        
+        $('.cancel-reply-btn').click(function() {
+            $(this).closest('.reply-form').addClass('d-none');
+        });
+    </script>
+{% endblock %}
