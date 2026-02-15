@@ -1,0 +1,655 @@
+{% extends 'base.html' %}
+
+{% block title %}数据仪表盘{% endblock %}
+
+{% block head %}
+    <style>
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .stat-card-icon {
+            font-size: 2.5rem;
+            opacity: 0.5;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-title {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .retention-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <h1 class="mb-4">数据仪表盘</h1>
+        
+        <!-- 概览统计卡片 -->
+        <div class="row mb-5" id="overview-stats">
+            <!-- 总用户数 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-primary stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-users stat-card-icon"></i>
+                        <div class="stat-title">总用户数</div>
+                        <div class="stat-value" id="total-users">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活跃用户数 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-success stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-user-check stat-card-icon"></i>
+                        <div class="stat-title">活跃用户</div>
+                        <div class="stat-value" id="active-users">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 总帖子数 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-info stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-file-alt stat-card-icon"></i>
+                        <div class="stat-title">总帖子数</div>
+                        <div class="stat-value" id="total-posts">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活跃帖子数 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-warning stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-file-signature stat-card-icon"></i>
+                        <div class="stat-title">活跃帖子</div>
+                        <div class="stat-value" id="active-posts">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 总评论数 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-danger stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-comments stat-card-icon"></i>
+                        <div class="stat-title">总评论数</div>
+                        <div class="stat-value" id="total-comments">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用户留存率 -->
+            <div class="col-lg-2 col-md-4 mb-4">
+                <div class="card text-white bg-secondary stat-card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-undo-alt stat-card-icon"></i>
+                        <div class="stat-title">月留存率</div>
+                        <div class="stat-value" id="retention-rate">--</div>
+                        <span class="retention-badge badge bg-dark" id="retention-desc">近30天活跃比例</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 周环比统计卡片 -->
+        <div class="row mb-5">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">本周新增用户</h5>
+                        <div class="d-flex justify-content-between items-center">
+                            <span class="h3" id="new-users-week">--</span>
+                            <span class="badge bg-success" id="user-growth-indicator">+0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">本周新增帖子</h5>
+                        <div class="d-flex justify-content-between items-center">
+                            <span class="h3" id="new-posts-week">--</span>
+                            <span class="badge bg-success" id="post-growth-indicator">+0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">本周新增评论</h5>
+                        <div class="d-flex justify-content-between items-center">
+                            <span class="h3" id="new-comments-week">--</span>
+                            <span class="badge bg-success" id="comment-growth-indicator">+0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    <!-- 图表区域 -->
+    <div class="row mb-5">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    月度发帖趋势
+                </div>
+                <div class="card-body">
+                    <div id="monthly-posts-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    帖子分类分布
+                </div>
+                <div class="card-body">
+                    <div id="category-distribution-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    核心用户排行（按声望值）
+                </div>
+                <div class="card-body">
+                    <div id="top-users-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    用户活跃度分布
+                </div>
+                <div class="card-body">
+                    <div id="user-activity-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 高级分析区域 -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    高级数据分析
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <p>此区域展示更深入的数据分析结果，包括：</p>
+                        <ul>
+                            <li>用户参与度与内容质量相关性分析</li>
+                            <li>热门话题与时间的关联模式</li>
+                            <li>用户留存率与活跃度预测</li>
+                            <li>内容推荐系统的有效性评估</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // 初始化所有图表
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchOverviewStats();
+            fetchMonthlyPosts();
+            fetchTopUsers();
+            fetchCategoryDistribution();
+            fetchUserActivityDistribution();
+        });
+
+        // 获取概览统计数据
+        function fetchOverviewStats() {
+            fetch('/api/stats/overview')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新统计卡片数据
+                    document.getElementById('total-users').textContent = data.total_users.toLocaleString();
+                    document.getElementById('active-users').textContent = data.active_users.toLocaleString();
+                    document.getElementById('total-posts').textContent = data.total_posts.toLocaleString();
+                    document.getElementById('active-posts').textContent = data.active_posts.toLocaleString();
+                    document.getElementById('total-comments').textContent = data.total_comments.toLocaleString();
+                    
+                    // 设置周环比数据
+                    document.getElementById('new-users-week').textContent = data.new_users_week.toLocaleString();
+                    document.getElementById('new-posts-week').textContent = data.new_posts_week.toLocaleString();
+                    document.getElementById('new-comments-week').textContent = data.new_comments_week.toLocaleString();
+                    
+                    // 设置月留存率
+                    document.getElementById('retention-rate').textContent = `${data.retention_rate.toFixed(1)}%`;
+                    
+                    // 设置增长指标
+                    updateGrowthIndicator('user-growth-indicator', data.user_growth_rate || 0);
+                    updateGrowthIndicator('post-growth-indicator', data.post_growth_rate || 0);
+                    updateGrowthIndicator('comment-growth-indicator', data.comment_growth_rate || 0);
+                })
+                .catch(error => {
+                    console.error('获取概览数据失败:', error);
+                    showError('overview-stats', '获取概览数据失败，请稍后重试');
+                });
+        }
+
+        // 更新增长指标显示
+        function updateGrowthIndicator(elementId, growthRate) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const isPositive = growthRate > 0;
+                element.textContent = `${isPositive ? '+' : ''}${growthRate.toFixed(1)}%`;
+                element.className = `badge ${isPositive ? 'bg-success' : 'bg-danger'}`;
+            }
+        }
+
+        // 显示错误消息
+        function showError(containerId, message) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                // 创建一个错误提示元素
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger w-100 text-center';
+                errorDiv.role = 'alert';
+                errorDiv.textContent = message;
+                
+                // 清空容器并添加错误提示
+                container.innerHTML = '';
+                container.appendChild(errorDiv);
+            }
+        }
+
+        // 获取月度发帖趋势数据
+        function fetchMonthlyPosts() {
+            fetch('/api/stats/monthly_posts')
+                .then(response => response.json())
+                .then(data => {
+                    const chart = echarts.init(document.getElementById('monthly-posts-chart'));
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderColor: '#188df0',
+                            textStyle: {
+                                color: '#fff'
+                            },
+                            formatter: function(params) {
+                                let result = params[0].name + '<br/>';
+                                params.forEach(item => {
+                                    result += `${item.marker} ${item.seriesName}: ${item.value}<br/>`;
+                                });
+                                return result;
+                            }
+                        },
+                        legend: {
+                            data: ['发帖数', '独立作者', '点赞数'],
+                            top: 'bottom'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: data.months || [],
+                            axisLabel: {
+                                rotate: 45
+                            }
+                        },
+                        yAxis: [
+                            {
+                                type: 'value',
+                                name: '数量',
+                                position: 'left'
+                            },
+                            {
+                                type: 'value',
+                                name: '点赞',
+                                position: 'right'
+                            }
+                        ],
+                        series: [
+                            {
+                                name: '发帖数',
+                                data: data.posts_count || [],
+                                type: 'line',
+                                smooth: true,
+                                lineStyle: {
+                                    width: 3,
+                                    color: '#188df0'
+                                },
+                                areaStyle: {
+                                    opacity: 0.3,
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: 'rgba(24, 141, 240, 0.5)' },
+                                        { offset: 1, color: 'rgba(24, 141, 240, 0.1)' }
+                                    ])
+                                }
+                            },
+                            {
+                                name: '独立作者',
+                                data: data.unique_authors || [],
+                                type: 'bar',
+                                color: '#52c41a'
+                            },
+                            {
+                                name: '点赞数',
+                                data: data.liked_posts || [],
+                                type: 'line',
+                                smooth: true,
+                                yAxisIndex: 1,
+                                color: '#ff7875',
+                                lineStyle: {
+                                    width: 2,
+                                    type: 'dashed'
+                                }
+                            }
+                        ],
+                        grid: {
+                            top: '10%',
+                            bottom: '15%',
+                            left: '3%',
+                            right: '3%',
+                            containLabel: true
+                        }
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', function() { chart.resize(); });
+                })
+                .catch(error => {
+                    console.error('获取月度发帖数据失败:', error);
+                    const chart = echarts.init(document.getElementById('monthly-posts-chart'));
+                    chart.setOption({
+                        title: {
+                            text: '数据加载失败',
+                            left: 'center',
+                            top: 'middle'
+                        }
+                    });
+                });
+        }
+
+        // 获取用户活跃度排行数据
+        function fetchTopUsers() {
+            fetch('/api/stats/top_users')
+                .then(response => response.json())
+                .then(data => {
+                    const chart = echarts.init(document.getElementById('top-users-chart'));
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderColor: '#722ed1',
+                            textStyle: {
+                                color: '#fff'
+                            },
+                            formatter: function(params) {
+                                const user = data.users ? data.users[params[0].dataIndex] : null;
+                                if (!user) return '数据加载中...';
+                                
+                                return user.username + '<br/>' +
+                                       '声望值: ' + user.reputation + '<br/>' +
+                                       '帖子数: ' + user.posts_count + '<br/>' +
+                                       '评论数: ' + user.comments_count + '<br/>' +
+                                       '最后活跃: ' + user.last_active;
+                            }
+                        },
+                        xAxis: {
+                            type: 'value',
+                            name: '声望值'
+                        },
+                        yAxis: {
+                            type: 'category',
+                            data: data.users ? data.users.map(user => user.username) : [],
+                            axisLabel: {
+                                interval: 0,
+                                fontSize: 12
+                            }
+                        },
+                        series: [
+                            {
+                                data: data.users ? data.users.map(user => user.reputation) : [],
+                                type: 'bar',
+                                itemStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                        { offset: 0, color: '#722ed1' },
+                                        { offset: 0.5, color: '#9254de' },
+                                        { offset: 1, color: '#b37feb' }
+                                    ])
+                                },
+                                label: {
+                                    show: true,
+                                    position: 'right',
+                                    formatter: '{c}'
+                                }
+                            }
+                        ],
+                        grid: {
+                            top: '3%',
+                            bottom: '3%',
+                            left: '60px',
+                            right: '80px',
+                            containLabel: true
+                        }
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', function() { chart.resize(); });
+                })
+                .catch(error => {
+                    console.error('获取用户排行数据失败:', error);
+                    const chart = echarts.init(document.getElementById('top-users-chart'));
+                    chart.setOption({
+                        title: {
+                            text: '数据加载失败',
+                            left: 'center',
+                            top: 'middle'
+                        }
+                    });
+                });
+        }
+
+        // 获取分类分布数据
+        function fetchCategoryDistribution() {
+            fetch('/api/stats/category_distribution')
+                .then(response => response.json())
+                .then(data => {
+                    const chart = echarts.init(document.getElementById('category-distribution-chart'));
+                    const option = {
+                        tooltip: {
+                            trigger: 'item',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderColor: '#f7ba1e',
+                            textStyle: {
+                                color: '#fff'
+                            },
+                            formatter: function(params) {
+                                const category = data.categories ? data.categories.find(cat => cat.name === params.name) : null;
+                                return params.name + '<br/>' +
+                                       '帖子数: ' + params.value + ' (' + params.percent + '%)<br/>' +
+                                       '平均评论: ' + (category ? category.avg_comments.toFixed(1) : '0') + '<br/>' +
+                                       '平均点赞: ' + (category ? category.avg_likes.toFixed(1) : '0');
+                            }
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            left: 'left',
+                            textStyle: {
+                                fontSize: 12
+                            }
+                        },
+                        series: [
+                            {
+                                name: '帖子分类',
+                                type: 'pie',
+                                radius: ['40%', '70%'],
+                                center: ['60%', '50%'],
+                                avoidLabelOverlap: false,
+                                itemStyle: {
+                                    borderRadius: 10,
+                                    borderColor: '#fff',
+                                    borderWidth: 2
+                                },
+                                label: {
+                                    show: false,
+                                    position: 'center'
+                                },
+                                emphasis: {
+                                    label: {
+                                        show: true,
+                                        fontSize: '16',
+                                        fontWeight: 'bold'
+                                    },
+                                    itemStyle: {
+                                        shadowBlur: 10,
+                                        shadowOffsetX: 0,
+                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    }
+                                },
+                                labelLine: {
+                                    show: false
+                                },
+                                data: data.categories ? data.categories.map(cat => ({
+                                    name: cat.name,
+                                    value: cat.posts_count
+                                })) : []
+                            }
+                        ]
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', function() { chart.resize(); });
+                })
+                .catch(error => {
+                    console.error('获取分类分布数据失败:', error);
+                    const chart = echarts.init(document.getElementById('category-distribution-chart'));
+                    chart.setOption({
+                        title: {
+                            text: '数据加载失败',
+                            left: 'center',
+                            top: 'middle'
+                        }
+                    });
+                });
+        }
+
+        // 获取用户活跃度分布数据
+        function fetchUserActivityDistribution() {
+            fetch('/api/stats/user_activity_distribution')
+                .then(response => response.json())
+                .then(data => {
+                    const chart = echarts.init(document.getElementById('user-activity-chart'));
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            borderColor: '#f5222d',
+                            textStyle: {
+                                color: '#fff'
+                            },
+                            formatter: function(params) {
+                                const interval = data.distribution ? data.distribution[params[0].dataIndex] : null;
+                                if (!interval) return '数据加载中...';
+                                
+                                return params[0].name + '<br/>' +
+                                       '用户数: ' + params[0].value + '<br/>' +
+                                       '占比: ' + interval.percentage.toFixed(1) + '%<br/>' +
+                                       '平均活跃度: ' + interval.avg_activity.toFixed(2);
+                            }
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: data.distribution ? data.distribution.map(item => item.name) : [],
+                            axisLabel: {
+                                rotate: 45
+                            }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            name: '用户数'
+                        },
+                        series: [
+                            {
+                                data: data.distribution ? data.distribution.map(item => item.count) : [],
+                                type: 'bar',
+                                itemStyle: {
+                                    color: function(params) {
+                                        const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1'];
+                                        return colors[params.dataIndex % colors.length];
+                                    }
+                                },
+                                label: {
+                                    show: true,
+                                    position: 'top',
+                                    formatter: '{c}'
+                                }
+                            }
+                        ],
+                        grid: {
+                            top: '3%',
+                            bottom: '20%',
+                            left: '3%',
+                            right: '3%',
+                            containLabel: true
+                        }
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', function() { chart.resize(); });
+                })
+                .catch(error => {
+                    console.error('获取用户活跃度分布数据失败:', error);
+                    const chart = echarts.init(document.getElementById('user-activity-chart'));
+                    chart.setOption({
+                        tooltip: {
+                            trigger: 'item'
+                        },
+                        series: [{
+                            name: '活跃度',
+                            type: 'gauge',
+                            detail: {
+                                formatter: '{value}%'
+                            },
+                            data: [{
+                                value: 65,
+                                name: '平均活跃度'
+                            }],
+                            axisLine: {
+                                lineStyle: {
+                                    color: [
+                                        [0.3, '#67e0e3'],
+                                        [0.7, '#37a2da'],
+                                        [1, '#fd666d']
+                                    ]
+                                }
+                            }
+                        }]
+                    });
+                });
+        }
+    </script>
+{% endblock %}

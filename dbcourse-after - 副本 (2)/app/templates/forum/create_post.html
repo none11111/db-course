@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}发布帖子{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 fade-in">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h3 class="text-center mb-0">发布新帖子</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('forum.create_post') }}" class="create-post-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 标题输入区域 -->
+                        <div class="form-group mb-5">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-primary text-white"><i class="bi bi-card-heading"></i></span>
+                                </div>
+                                {{ form.title(class="form-control rounded-right" + (' is-invalid' if form.title.errors else ''), placeholder="请输入帖子标题，让它吸引读者的注意力...", required=true) }}
+                            </div>
+                            <small class="form-text text-muted d-block mt-1">标题长度必须在5-200个字符之间</small>
+                            {% for error in form.title.errors %}
+                                <div class="text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- 分类选择区域 -->
+                        <div class="form-group mb-5">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-primary text-white"><i class="bi bi-tags"></i></span>
+                                </div>
+                                {{ form.category(class="form-control rounded-right" + (' is-invalid' if form.category.errors else '')) }}
+                            </div>
+                            <small class="form-text text-muted d-block mt-1">请选择帖子分类</small>
+                            {% for error in form.category.errors %}
+                                <div class="text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- 内容编辑区域 -->
+                        <div class="form-group mb-5">
+                            <div class="mb-2 d-flex justify-content-between">
+                                <label class="form-label font-medium text-primary">帖子内容</label>
+                                <small class="text-muted"><i class="bi bi-markdown"></i> 支持Markdown格式</small>
+                            </div>
+                            <div class="editor-container border rounded-lg overflow-hidden">
+                                {{ form.content(class="form-control border-0 rounded-0" + (' is-invalid' if form.content.errors else ''), rows=12, placeholder="在这里分享您的想法...\n\n提示：\n• 可以使用标题、列表、粗体等格式\n• 添加相关图片会让帖子更吸引人\n• 清晰的结构和排版更容易获得回复") }}
+                            </div>
+                            <small class="form-text text-muted d-block mt-1">帖子内容不能为空</small>
+                            {% for error in form.content.errors %}
+                                <div class="text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- 标签输入区域 -->
+                        <div class="form-group mb-5 tags-input">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-primary text-white"><i class="bi bi-hashtag"></i></span>
+                                </div>
+                                {{ form.tags(class="form-control rounded-right" + (' is-invalid' if form.tags.errors else ''), placeholder="请输入标签，用逗号分隔（如：技术,分享,讨论）") }}
+                            </div>
+                            <small class="form-text text-muted d-block mt-1">添加相关标签可以让更多感兴趣的人看到您的帖子（标签总长度不能超过200个字符）</small>
+                            {% for error in form.tags.errors %}
+                                <div class="text-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- 操作按钮 -->
+                        <div class="form-group mt-6">
+                            <div class="d-grid gap-3">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-paper-plane mr-2"></i> 发布帖子
+                                </button>
+                                <a href="{{ url_for('forum.forum_index') }}" class="btn btn-outline-secondary btn-lg">
+                                    <i class="bi bi-x-circle mr-2"></i> 取消
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

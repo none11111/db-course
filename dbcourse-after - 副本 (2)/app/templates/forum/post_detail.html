@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.PostTitle }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h1 class="card-title">{{ post.PostTitle }}</h1>
+                    <div class="post-meta mb-4">
+                        <span><i class="fa fa-user"></i> <a href="{{ url_for('auth.profile', user_id=post.UserID) }}">{{ post.author.UserName }}</a></span>
+                        <span class="mx-2">•</span>
+                        <span><i class="fa fa-clock-o"></i> {{ post.CreationTime.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="mx-2">•</span>
+                        <span><i class="fa fa-eye"></i> {{ post.ViewCount or 0 }} 浏览</span>
+                        <span class="mx-2">•</span>
+                        <span><i class="fa fa-comment"></i> {{ post.CommentCount or 0 }} 评论</span>
+                        <span class="mx-2">•</span>
+                        {% if post.IsAIAudit %}
+                            {% if post.AIAuditResult %}
+                            <span class="badge badge-success text-dark">已通过 AI 审核</span>
+                            {% else %}
+                            <span class="badge badge-danger text-dark">未通过</span>
+                            {% endif %}
+                        {% else %}
+                            {% if post.Status == 'pending' %}
+                            <span class="badge badge-warning text-dark">待人工审核</span>
+                            {% elif post.Status == 'rejected' %}
+                            <span class="badge badge-danger text-dark">人工审核不通过</span>
+                            {% elif post.Status == 'approved' %}
+                            <span class="badge badge-success text-dark">AI 审核</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 审核备注 -->
+                    {% if post.Status == 'rejected' and post.ReviewComment %}
+                    <div class="alert alert-danger mb-4">
+                        <strong>审核不通过理由:</strong> {{ post.ReviewComment }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 分类和标签 -->
+                    <div class="post-tags mb-4">
+                        {% if post.category %}
+                        <span class="badge badge-primary mr-2">
+                            <a href="{{ url_for('forum.category_posts', category_id=post.category.CategoryID) }}" class="text-dark">
+                                {{ post.category.CategoryName }}
+                            </a>
+                        </span>
+                        {% endif %}
+                        {% for tag in post.tags %}
+                        <span class="badge badge-secondary mr-2">
+                            <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="text-dark">
+                                {{ tag.TagName }}
+                            </a>
+                        </span>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 帖子内容 -->
+                    <div class="post-content">
+                        {{ post.PostContent|safe }}
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="post-actions mt-4">
+                        <!-- 作者操作 -->
+                        {% if current_user.is_authenticated and current_user.UserID == post.UserID %}
+                            <a href="{{ url_for('forum.edit_post', post_id=post.PostID) }}" class="btn btn-secondary mr-2">编辑</a>
+                            
+                            <!-- 如果帖子被拒绝，可以重新提交 -->
+                            {% if post.Status == 'rejected' %}
+                            <form method="POST" action="{{ url_for('forum.resubmit_post', post_id=post.PostID) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-primary" onclick="return confirm('确定要重新提交这个帖子吗？')">重新提交</button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <!-- 管理员操作 -->
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
+                            <form method="POST" action="{{ url_for('forum.toggle_sticky', post_id=post.PostID) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-info mr-2">
+                                    {% if post.IsSticky %}取消置顶{% else %}置顶{% endif %}
+                                </button>
+                            </form>
+                            
+                            {% if post.Status == 'pending' %}
+                            <form method="POST" action="{{ url_for('forum.approve_post', post_id=post.PostID) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success mr-2">批准</button>
+                            </form>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ post.PostID }}">拒绝</button>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <!-- 删除按钮：只在作者不是管理员时显示作者删除按钮，管理员删除按钮统一在管理员操作中 -->
+                        {% if current_user.is_authenticated %}
+                            {% if (current_user.UserID == post.UserID and not current_user.is_admin()) or current_user.is_admin() %}
+                                <form method="POST" action="{{ url_for('forum.delete_post', post_id=post.PostID) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger mr-2" onclick="return confirm('确定要删除这个帖子吗？')">删除</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 拒绝确认模态框 --> 
+                    {% if current_user.is_authenticated and current_user.is_admin() %} 
+                    <div class="modal fade" id="rejectModal{{ post.PostID }}" tabindex="-1" aria-labelledby="rejectModalLabel{{ post.PostID }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header"> 
+                                    <h5 class="modal-title" id="rejectModalLabel{{ post.PostID }}">拒绝帖子</h5> 
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> 
+                                </div>
+                                <form method="POST" action="{{ url_for('forum.reject_post', post_id=post.PostID) }}">
+                                    <div class="modal-body">
+                                        <div class="form-group"> 
+                                            <label for="reviewComment{{ post.PostID }}">拒绝理由</label> 
+                                            <textarea class="form-control" id="reviewComment{{ post.PostID }}" name="review_comment" rows="3" required></textarea> 
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">确认拒绝</button>
+                </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 评论区域 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3>评论 ({{ post.CommentCount or 0 }})</h3>
+                </div>
+                <div class="card-body">
+                    <!-- 发表评论 -->
+                    {% if current_user.is_authenticated %}
+                    <div class="comment-form mb-4">
+                        <form method="POST" action="{{ url_for('forum.add_comment', post_id=post.PostID) }}">
+                            {{ form.hidden_tag() }}
+                            <div class="form-group">
+                                {{ form.content(class_='form-control', id='content', rows='3', placeholder='发表你的评论...') }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">发表评论</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        请先<a href="{{ url_for('auth.login') }}">登录</a>后再发表评论
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 评论列表 -->
+                    {% if comments %}
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                        {% include 'forum/_comment.html' %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">暂无评论，快来抢沙发吧！</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div class="col-md-4">
+            <!-- 作者信息 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>作者信息</h4>
+                </div>
+                <div class="card-body">
+                    <div class="author-info">
+                        <h5><a href="{{ url_for('auth.profile', user_id=post.UserID) }}">{{ post.author.UserName }}</a></h5>
+                        {% if post.author.UserBio %}
+                        <p class="author-bio">{{ post.author.UserBio }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 相关分类 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>相关分类</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for category in categories %}
+                        <li class="list-group-item">
+                            <a href="{{ url_for('forum.category_posts', category_id=category.CategoryID) }}">{{ category.CategoryName }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 处理评论回复功能的JavaScript
+$(document).ready(function() {
+    // 使用事件委托来处理所有回复按钮，包括动态加载的嵌套回复
+    $(document).on('click', '.reply-btn', function(e) {
+        e.preventDefault();
+        var commentId = $(this).data('comment-id');
+        
+        // 隐藏所有其他回复表单
+        $('.reply-form').hide();
+        
+        // 显示当前回复表单
+        $('#reply-form-' + commentId).show();
+        
+        // 聚焦到回复框
+        $('#reply-form-' + commentId + ' textarea').focus();
+    });
+    
+    // 取消回复 - 同样使用事件委托
+    $(document).on('click', '.cancel-reply', function(e) {
+        e.preventDefault();
+        var commentId = $(this).data('comment-id');
+        $('#reply-form-' + commentId).hide();
+    });
+    
+    // 处理回复表单提交
+    $(document).on('submit', '.reply-form form', function(e) {
+        // 获取当前表单的ID
+        var formId = $(this).closest('.reply-form').attr('id');
+        var commentId = formId.replace('reply-form-', '');
+        
+        // 清除所有parent_id字段
+        $('input[name="parent_id"]').remove();
+        
+        // 在当前表单中添加parent_id字段
+        $(this).append('<input type="hidden" name="parent_id" value="' + commentId + '">');
+        
+        // 表单将正常提交
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑帖子{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3>编辑帖子</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('forum.edit_post', post_id=post.PostID) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.title.label(class="form-control-label") }}
+                            {{ form.title(class="form-control" + (' is-invalid' if form.title.errors else '')) }}
+                            <small class="form-text text-muted">标题长度必须在5-200个字符之间</small>
+                            {% for error in form.title.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.category.label(class="form-control-label") }}
+                            {{ form.category(class="form-control" + (' is-invalid' if form.category.errors else '')) }}
+                            <small class="form-text text-muted">请选择帖子分类</small>
+                            {% for error in form.category.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.content.label(class="form-control-label") }}
+                            {{ form.content(class="form-control" + (' is-invalid' if form.content.errors else ''), rows=10) }}
+                            <small class="form-text text-muted">帖子内容不能为空</small>
+                            {% for error in form.content.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.tags.label(class="form-control-label") }}
+                            {{ form.tags(class="form-control" + (' is-invalid' if form.tags.errors else ''), placeholder="请输入标签，用逗号分隔") }}
+                            <small class="form-text text-muted">多个标签请用逗号分隔（标签总长度不能超过200个字符）</small>
+                            {% for error in form.tags.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                重新提交审核
+                            </button>
+                            <a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}" class="btn btn-secondary btn-block mt-2">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
