@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category.CategoryName }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="page-header">
+                <h1>{{ category.CategoryName }}</h1>
+                <p class="lead">该分类下共有 {{ category.posts.count() }} 个帖子</p>
+            </div>
+            
+            <!-- 排序和筛选 -->
+            <div class="filter-bar mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-inline">
+                            <label for="sort-by" class="mr-2">排序方式:</label>
+                            <select id="sort-by" class="form-control" onchange="location = this.value;">
+                                <option value="{{ url_for('forum.category_posts', category_id=category.CategoryID, sort='latest') }}" {% if sort_by == 'latest' %}selected{% endif %}>最新发布</option>
+                                <option value="{{ url_for('forum.category_posts', category_id=category.CategoryID, sort='hottest') }}" {% if sort_by == 'hottest' %}selected{% endif %}>最热门</option>
+                                <option value="{{ url_for('forum.category_posts', category_id=category.CategoryID, sort='most_viewed') }}" {% if sort_by == 'most_viewed' %}selected{% endif %}>最多浏览</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 帖子列表 -->
+            <div class="post-list">
+                {% for post in posts.items %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-10">
+                                <h2 class="card-title"><a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}">{{ post.PostTitle }}</a></h2>
+                                <div class="post-meta mb-2">
+                                    <span><i class="fa fa-user"></i> <a href="{{ url_for('auth.profile', user_id=post.UserID) }}">{{ post.author.UserName }}</a></span>
+                                    <span class="mx-2">•</span>
+                                    <span><i class="fa fa-clock-o"></i> {{ post.CreationTime.strftime('%Y-%m-%d %H:%M') }}</span>
+                                    <span class="mx-2">•</span>
+                                    <span><i class="fa fa-eye"></i> {{ post.ViewCount or 0 }}</span>
+                                    <span class="mx-2">•</span>
+                                    <span><i class="fa fa-comment"></i> {{ post.CommentCount or 0 }}</span>
+                                </div>
+                                <p class="card-text">{{ post.PostContent|striptags|truncate(150) }}</p>
+                                <div class="post-tags">
+                                    {% for tag in post.tags %}
+                                    <span class="badge badge-secondary">
+                                        <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="text-dark">
+                                            {{ tag.TagName }}
+                                        </a>
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination justify-content-center">
+                {% for page_num in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                {% if posts.page == page_num %}
+                <a class="btn btn-primary mb-4" href="{{ url_for('forum.category_posts', category_id=category.CategoryID, page=page_num, sort=sort_by) }}">{{ page_num }}</a>
+                {% else %}
+                <a class="btn btn-outline-primary mb-4" href="{{ url_for('forum.category_posts', category_id=category.CategoryID, page=page_num, sort=sort_by) }}">{{ page_num }}</a>
+                {% endif %}
+                {% else %}
+                <span class="btn btn-outline-primary mb-4">...</span>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div class="col-md-4">
+            <!-- 分类列表 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>所有分类</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="sidebar-list">
+                        {% for c in categories %}
+                        <li>
+                            <a href="{{ url_for('forum.category_posts', category_id=c.CategoryID) }}">
+                                {{ c.CategoryName }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 热门标签 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>热门标签</h4>
+                </div>
+                <div class="card-body">
+                    <div class="tag-cloud">
+                        {% for tag in tags %}
+                        <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="badge badge-secondary">
+                            {{ tag.TagName }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

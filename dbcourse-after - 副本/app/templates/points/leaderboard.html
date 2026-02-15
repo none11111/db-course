@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}积分排行榜{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <!-- 总积分排行榜 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">总积分排行榜</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>用户</th>
+                                <th>积分</th>
+                                <th>等级</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_users %}
+                            <tr {% if user.UserID == current_user.UserID %}class="table-active"{% endif %}>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <a href="{{ url_for('auth.profile', user_id=user.UserID) }}" class="text-decoration-none">
+                                        {% if user.AvatarURL %}
+                                        <img src="{{ user.AvatarURL }}" alt="{{ user.UserName }}" class="rounded-circle mr-2" style="width: 30px; height: 30px;">
+                                        {% endif %}
+                                        {{ user.UserName }}
+                                    </a>
+                                </td>
+                                <td class="text-primary font-weight-bold">{{ user.Points or 0 }}</td>
+                                <td>Lv.{{ user.Level }} {{ user.Level|level_name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <!-- 本周积分排行榜 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">本周积分排行榜</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>用户</th>
+                                <th>本周积分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in weekly_top %}
+                            <tr {% if record.UserID == current_user.UserID %}class="table-active"{% endif %}>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <a href="{{ url_for('auth.profile', user_id=record.UserID) }}" class="text-decoration-none">
+                                        {{ record.UserID }}
+                                    </a>
+                                </td>
+                                <td class="text-success font-weight-bold">{{ record.total_points }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

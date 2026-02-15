@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}积分中心{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <!-- 左侧：用户信息 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar mb-3">
+                        {% if current_user.AvatarURL %}
+                        <img src="{{ current_user.AvatarURL }}" alt="{{ current_user.UserName }}" class="rounded-circle" style="width: 100px; height: 100px;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; margin: 0 auto;">
+                            <i class="fas fa-user fa-3x text-white"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h4>{{ current_user.UserName }}</h4>
+                    <p class="text-muted">Lv.{{ current_user.Level }} {{ current_user.Level|level_name }}</p>
+                    
+                    <div class="points-display mb-3">
+                        <h2 class="text-primary">{{ current_user.Points or 0 }}</h2>
+                        <p class="text-muted">当前积分</p>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-1">累计获得</p>
+                                <h5 class="text-success">{{ current_user.TotalPointsEarned or 0 }}</h5>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1">连续签到</p>
+                                <h5 class="text-info">{{ current_user.ConsecutiveCheckInDays or 0 }} 天</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="reputation-info">
+                        <h6 class="mb-2">声望值</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>当前声望</span>
+                            <span class="badge badge-primary">{{ current_user.Reputation or 0 }}</span>
+                        </div>
+                        <small class="text-muted">
+                            声望值代表你在社区中的贡献度和活跃度，通过以下方式获得：
+                        </small>
+                        <ul class="small text-muted mt-2 mb-0" style="padding-left: 1.5rem;">
+                            <li>发布优质帖子</li>
+                            <li>回复他人帖子</li>
+                            <li>帖子被点赞</li>
+                            <li>帖子被收藏</li>
+                            <li>被设为最佳回复</li>
+                            <li>参与社区活动</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 签到卡片 -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">每日签到</h5>
+                    <p class="text-muted small">连续签到可获得额外积分奖励</p>
+                    <div id="checkin-section">
+                        <button id="checkin-btn" class="btn btn-primary btn-block" onclick="checkIn()">
+                            <i class="fas fa-calendar-check"></i> 立即签到
+                        </button>
+                    </div>
+                    <div id="checkin-info" class="mt-2 text-center" style="display: none;">
+                        <span class="text-success"><i class="fas fa-check-circle"></i> 今日已签到</span>
+                        <p class="text-muted small">连续签到 <span id="consecutive-days">0</span> 天</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧：积分记录和商城 -->
+        <div class="col-md-8">
+            <!-- 积分记录 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">最近积分记录</h5>
+                    <a href="{{ url_for('points.points_records') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_records %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                    <th>积分变化</th>
+                                    <th>余额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in recent_records %}
+                                <tr>
+                                    <td>{{ record.CreationTime.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ record.Description }}</td>
+                                    <td class="{% if record.Points > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {% if record.Points > 0 %}+{% endif %}{{ record.Points }}
+                                    </td>
+                                    <td>{{ record.Balance }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">暂无积分记录</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 积分商城 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">积分商城</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for item in shop_items %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                {% if item.ImageURL %}
+                                <img src="{{ item.ImageURL }}" alt="{{ item.ItemName }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ item.ItemName }}</h6>
+                                    <p class="card-text small text-muted">{{ item.ItemDescription[:50] }}...</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary font-weight-bold">{{ item.PointsRequired }} 积分</span>
+                                        {% if item.Stock == -1 %}
+                                        <span class="badge badge-success">无限</span>
+                                        {% elif item.Stock > 0 %}
+                                        <span class="badge badge-info">剩余 {{ item.Stock }}</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">已售罄</span>
+                                        {% endif %}
+                                    </div>
+                                    <button class="btn btn-primary btn-sm btn-block mt-2" 
+                                            onclick="buyItem({{ item.ItemID }}, {{ item.PointsRequired }})"
+                                            {% if item.Stock == 0 %}disabled{% endif %}>
+                                        兑换
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('points.points_shop') }}" class="btn btn-outline-primary">查看更多商品</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 检查签到状态
+    $.get('{{ url_for("points.checkin_status") }}', function(data) {
+        if (data.checked_in) {
+            $('#checkin-section').hide();
+            $('#checkin-info').show();
+            $('#consecutive-days').text(data.consecutive_days);
+        }
+    });
+});
+
+function checkIn() {
+    $.post('{{ url_for("points.check_in") }}', function(data) {
+        if (data.success) {
+            $('#checkin-section').hide();
+            $('#checkin-info').show();
+            $('#consecutive-days').text(data.consecutive_days);
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+function buyItem(itemId, pointsRequired) {
+    if (!confirm('确定要花费 ' + pointsRequired + ' 积分兑换此商品吗？')) {
+        return;
+    }
+    
+    $.post('{{ url_for("points.buy_item", item_id=0) }}'.replace('0', itemId), function(data) {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    }).fail(function() {
+        alert('网络错误，请稍后重试');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}积分商城{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">积分商城</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for item in items %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                {% if item.ImageURL %}
+                                <img src="{{ item.ImageURL }}" alt="{{ item.ItemName }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ item.ItemName }}</h5>
+                                    <p class="card-text text-muted small">{{ item.ItemDescription }}</p>
+                                    <div class="mb-2">
+                                        <span class="badge badge-primary">{{ item.ItemType }}</span>
+                                        {% if item.ValidityDays > 0 %}
+                                        <span class="badge badge-info">有效期 {{ item.ValidityDays }} 天</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary font-weight-bold h4">{{ item.PointsRequired }} 积分</span>
+                                        {% if item.Stock == -1 %}
+                                        <span class="badge badge-success">无限</span>
+                                        {% elif item.Stock > 0 %}
+                                        <span class="badge badge-info">剩余 {{ item.Stock }}</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">已售罄</span>
+                                        {% endif %}
+                                    </div>
+                                    <button class="btn btn-primary btn-block mt-2" 
+                                            onclick="buyItem({{ item.ItemID }}, {{ item.PointsRequired }}, '{{ item.ItemName }}')"
+                                            {% if item.Stock == 0 %}disabled{% endif %}">
+                                        兑换
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function buyItem(itemId, pointsRequired, itemName) {
+    if (!confirm('确定要花费 ' + pointsRequired + ' 积分兑换「' + itemName + '」吗？')) {
+        return;
+    }
+    
+    $.post('{{ url_for("points.buy_item", item_id=0) }}'.replace('0', itemId), function(data) {
+        if (data.success) {
+            alert('兑换成功！');
+            location.reload();
+        } else {
+            alert(data.message || '兑换失败');
+        }
+    }).fail(function() {
+        alert('网络错误，请重试');
+    });
+}
+</script>
+{% endblock %}
