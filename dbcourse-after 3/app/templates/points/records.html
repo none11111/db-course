@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}积分记录{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">积分记录</h5>
+                </div>
+                <div class="card-body">
+                    {% if records.items %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                    <th>积分变化</th>
+                                    <th>余额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records.items %}
+                                <tr>
+                                    <td>{{ record.CreationTime.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ record.Description }}</td>
+                                    <td class="{% if record.Points > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {% if record.Points > 0 %}+{% endif %}{{ record.Points }}
+                                    </td>
+                                    <td>{{ record.Balance }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    {% if records.pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if records.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('points.points_records', page=records.prev_num) }}">上一页</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in records.iter_pages(left_edge=1, right_edge=1) %}
+                            <li class="page-item {% if page_num == records.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('points.points_records', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if records.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('points.points_records', page=records.next_num) }}">下一页</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <p class="text-muted text-center">暂无积分记录</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">商品管理</h2>
+                        <a href="{{ url_for('points.admin_add_item') }}" class="btn btn-light">
+                            <i class="fa fa-plus"></i> 添加商品
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    {% if pagination.items %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">商品图片</th>
+                                    <th scope="col">商品名称</th>
+                                    <th scope="col">分类</th>
+                                    <th scope="col">所需积分</th>
+                                    <th scope="col">库存</th>
+                                    <th scope="col">状态</th>
+                                    <th scope="col">创建时间</th>
+                                    <th scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pagination.items %}
+                                <tr>
+                                    <th scope="row">{{ item.ItemID }}</th>
+                                    <td>
+                                        {% if item.ImageURL %}
+                                            <img src="{{ item.ImageURL }}" alt="{{ item.ItemName }}" class="img-thumbnail" style="max-width: 50px; max-height: 50px;">
+                                        {% else %}
+                                            <span class="text-muted">无图片</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ item.ItemName }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ item.ItemDescription[:50] if item.ItemDescription else '无描述' }}...</small>
+                                    </td>
+                                    <td>
+                                        {% if item.ItemType == 'virtual' %}
+                                            <span class="badge badge-info">虚拟商品</span>
+                                        {% elif item.ItemType == 'physical' %}
+                                            <span class="badge badge-primary">实物商品</span>
+                                        {% elif item.ItemType == 'privilege' %}
+                                            <span class="badge badge-warning">特权商品</span>
+                                        {% elif item.ItemType == 'coupon' %}
+                                            <span class="badge badge-success">优惠券</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">{{ item.PointsRequired }} 积分</span>
+                                    </td>
+                                    <td>
+                                        {% if item.Stock == -1 %}
+                                            <span class="text-success">无限</span>
+                                        {% else %}
+                                            <span class="{% if item.Stock <= 10 %}text-danger{% elif item.Stock <= 50 %}text-warning{% else %}text-success{% endif %}">
+                                                {{ item.Stock }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if item.IsActive else 'danger' }}">
+                                            {{ '上架' if item.IsActive else '下架' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ item.CreationTime.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('points.admin_edit_item', item_id=item.ItemID) }}" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="fa fa-edit"></i> 编辑
+                                            </a>
+                                            <form action="{{ url_for('points.admin_toggle_item', item_id=item.ItemID) }}" 
+                                                  method="POST" 
+                                                  class="d-inline-block">
+                                                <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if item.IsActive else 'success' }}">
+                                                    <i class="fa fa-{{ 'eye-slash' if item.IsActive else 'eye' }}"></i>
+                                                    {{ '下架' if item.IsActive else '上架' }}
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('points.admin_delete_item', item_id=item.ItemID) }}" 
+                                                  method="POST" 
+                                                  class="d-inline-block" 
+                                                  onsubmit="return confirm('确定要删除这个商品吗？');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fa fa-trash"></i> 删除
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if pagination.pages > 1 %}
+                    <nav aria-label="分页导航">
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('points.admin_shop', page=pagination.prev_num) }}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num == pagination.page %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('points.admin_shop', page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('points.admin_shop', page=pagination.next_num) }}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="alert alert-info" role="alert">
+                        暂无商品，请点击上方按钮添加商品
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

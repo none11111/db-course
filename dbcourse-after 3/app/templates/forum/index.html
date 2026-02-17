@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+
+{% block title %}论坛首页{% endblock %}
+
+{% block head %}
+<style>
+    .hero-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        background-size: 200% 200%;
+        animation: gradientMove 8s ease infinite;
+        color: white;
+        padding: 4rem 0;
+        border-radius: 0 0 60px 60px;
+        margin-bottom: 3rem;
+        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="15" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="30" r="10" fill="rgba(255,255,255,0.08)"/><circle cx="50" cy="80" r="20" fill="rgba(255,255,255,0.06)"/></svg>');
+        background-size: 150px 150px;
+        animation: floatBackground 20s linear infinite;
+    }
+
+    @keyframes floatBackground {
+        0% { transform: translateY(0) rotate(0deg); }
+        100% { transform: translateY(-50px) rotate(360deg); }
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 900;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-subtitle {
+        font-size: 1.4rem;
+        opacity: 0.95;
+        margin-bottom: 2.5rem;
+        font-weight: 500;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-buttons {
+        position: relative;
+        z-index: 1;
+    }
+
+    .floating-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        animation: floatShape 6s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+        width: 80px;
+        height: 80px;
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+        width: 120px;
+        height: 120px;
+        top: 60%;
+        right: 10%;
+        animation-delay: 2s;
+    }
+
+    .shape:nth-child(3) {
+        width: 60px;
+        height: 60px;
+        bottom: 20%;
+        left: 30%;
+        animation-delay: 4s;
+    }
+
+    @keyframes floatShape {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-20px) scale(1.1); }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card-enhanced {
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid transparent;
+    }
+
+    .stat-card-enhanced::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient-primary);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+
+    .stat-card-enhanced:hover::before {
+        transform: scaleX(1);
+    }
+
+    .stat-card-enhanced:hover {
+        transform: translateY(-8px) scale(1.05);
+        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        border-color: var(--primary-color);
+    }
+
+    .stat-icon-enhanced {
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: white;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card-enhanced:hover .stat-icon-enhanced {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+    }
+
+    .stat-number-enhanced {
+        font-size: 3.5rem;
+        font-weight: 900;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .stat-label-enhanced {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .trending-section {
+        background: white;
+        border-radius: 24px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .trending-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea);
+        background-size: 300% 100%;
+        animation: gradientMove 3s linear infinite;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 2rem;
+        position: relative;
+        display: inline-block;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: var(--gradient-primary);
+        border-radius: 2px;
+    }
+
+    .trending-item {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .trending-item:hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-color: var(--primary-color);
+        transform: translateX(8px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .trending-rank {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: var(--gradient-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-right: 1.5rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .trending-info {
+        flex: 1;
+    }
+
+    .trending-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .trending-meta {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state-enhanced {
+        text-align: center;
+        padding: 6rem 3rem;
+        background: white;
+        border-radius: 32px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .empty-state-enhanced::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.05) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
+
+    .empty-icon-enhanced {
+        font-size: 6rem;
+        margin-bottom: 2rem;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .pulse-dot {
+        width: 12px;
+        height: 12px;
+        background: var(--success-color);
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s ease-in-out infinite;
+        margin-right: 0.5rem;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <div class="container">
+        <div class="text-center">
+            <h1 class="hero-title">欢迎来到扶贫助农论坛</h1>
+            <p class="hero-subtitle">分享经验，交流心得，共同助力乡村振兴</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('forum.create_post') }}" class="btn btn-light btn-lg me-3">
+                    <i class="fas fa-plus-circle"></i> 发布帖子
+                </a>
+                <a href="{{ url_for('forum.forum_index') }}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-compass"></i> 浏览论坛
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container animate-fade-in">
+    <!-- 统计数据 -->
+    <div class="stats-grid">
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-number-enhanced">{{ user_count }}</div>
+            <div class="stat-label-enhanced">总用户</div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stat-number-enhanced">{{ post_count }}</div>
+            <div class="stat-label-enhanced">总帖子</div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div class="stat-number-enhanced">{{ comment_count }}</div>
+            <div class="stat-label-enhanced">总评论</div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-number-enhanced">{{ today_post_count }}</div>
+            <div class="stat-label-enhanced">今日新增</div>
+        </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="row">
+        <!-- 主内容区 -->
+        <div class="col-md-8">
+            <!-- 分类导航 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('forum.forum_index') }}" class="btn {% if not category_id %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class="fas fa-th-large"></i> 全部分类
+                        </a>
+                        {% for category in categories %}
+                        <a href="{{ url_for('forum.category_posts', category_id=category.CategoryID) }}" class="btn {% if category_id == category.CategoryID %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            <i class="fas fa-folder"></i> {{ category.CategoryName }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 排序选项 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="text-end">
+                        <span class="mr-2">排序:</span>
+                        <div class="btn-group">
+                            <a href="{{ url_for('forum.forum_index', sort='latest') }}" class="btn {% if sort_by == 'latest' or not sort_by %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="fas fa-clock"></i> 最新发布
+                            </a>
+                            <a href="{{ url_for('forum.forum_index', sort='popular') }}" class="btn {% if sort_by == 'popular' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="fas fa-fire"></i> 最热门
+                            </a>
+                            <a href="{{ url_for('forum.forum_index', sort='comments') }}" class="btn {% if sort_by == 'comments' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="fas fa-comments"></i> 评论最多
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 帖子列表 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3><i class="fas fa-list"></i> 帖子列表</h3>
+                </div>
+                <div class="card-body">
+                    {% if posts %}
+                    <div>
+                        {% for post in posts %}
+                        <div class="post-card animate-slide-up">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="post-meta">
+                                            <a href="{{ url_for('auth.profile', user_id=post.UserID) }}" class="text-muted small">
+                                                <i class="fas fa-user"></i> {{ post.author.UserName }}
+                                            </a>
+                                            <span class="mx-2 text-muted">•</span>
+                                            <span class="text-muted small">
+                                                <i class="fas fa-clock"></i> {{ post.CreationTime.strftime('%Y-%m-%d %H:%M') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h5 class="mt-2 mb-3 post-title">
+                                        <a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}" class="text-dark">{{ post.PostTitle }}</a>
+                                    </h5>
+                                    
+                                    <p class="text-muted small mb-3 post-excerpt">
+                                        {{ post.PostContent|striptags|truncate(150) }}
+                                    </p>
+                                    
+                                    <!-- 分类和标签 -->
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        {% if post.categories %}
+                                        {% for category in post.categories %}
+                                        <span class="badge badge-primary">
+                                            <a href="{{ url_for('forum.category_posts', category_id=category.CategoryID) }}" class="text-white text-decoration-none">
+                                                <i class="fas fa-folder"></i> {{ category.CategoryName }}
+                                            </a>
+                                        </span>
+                                        {% endfor %}
+                                        {% endif %}
+                                        
+                                        {% if post.tags %}
+                                        {% for tag in post.tags %}
+                                        <span class="badge badge-secondary">
+                                            <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="text-white text-decoration-none">
+                                                <i class="fas fa-tag"></i> {{ tag.TagName }}
+                                            </a>
+                                        </span>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center post-footer">
+                                        <div class="post-stats">
+                                            <span class="stat-item">
+                                                <i class="fas fa-comment"></i> {{ post.comments.count() }}
+                                            </span>
+                                            <span class="stat-item">
+                                                <i class="fas fa-eye"></i> {{ post.ViewCount or 0 }}
+                                            </span>
+                                        </div>
+                                        <a href="{{ url_for('forum.post_detail', post_id=post.PostID) }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye"></i> 查看详情
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        {% if pagination.has_prev %}
+                        <a href="{{ url_for('forum.forum_index', page=pagination.prev_num) }}" class="btn btn-outline-primary">上一页</a>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                            {% if page_num %}
+                                {% if pagination.page == page_num %}
+                                <a href="{{ url_for('forum.forum_index', page=page_num) }}" class="btn btn-primary">{{ page_num }}</a>
+                                {% else %}
+                                <a href="{{ url_for('forum.forum_index', page=page_num) }}" class="btn btn-outline-primary">{{ page_num }}</a>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted">...</span>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <a href="{{ url_for('forum.forum_index', page=pagination.next_num) }}" class="btn btn-outline-primary">下一页</a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state-enhanced">
+                        <div class="empty-icon-enhanced">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <h3 class="empty-state-title">暂无帖子</h3>
+                        <p class="empty-state-description">还没有帖子发布，快来发布第一个帖子吧！</p>
+                        <a href="{{ url_for('forum.create_post') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus"></i> 发布新帖子
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div class="col-md-4">
+            <!-- 发布帖子按钮 -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <a href="{{ url_for('forum.create_post') }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-plus-circle"></i> 发布新帖子
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 热门标签 -->
+            {% if popular_tags %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-tags"></i> 热门标签</h5>
+                </div>
+                <div class="card-body">
+                    <div class="tag-cloud">
+                        {% for tag in popular_tags %}
+                        <a href="{{ url_for('forum.tag_posts', tag_id=tag.TagID) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-tag"></i> {{ tag.TagName }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 管理员审核入口 -->
+            {% if current_user.is_authenticated and current_user.is_admin() %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <a href="{{ url_for('forum.moderation') }}" class="btn btn-danger btn-block">
+                        <i class="fas fa-gavel"></i> 帖子审核
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

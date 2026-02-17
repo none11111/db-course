@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析平台 - 论坛管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .stats-card {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .card-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+        .list-group-item {
+            border-left: 4px solid transparent;
+        }
+        .list-group-item:hover {
+            border-left-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    {% extends "base.html" %}
+    
+    {% block content %}
+    <div class="container mt-4">
+        <h1 class="mb-4">数据分析平台</h1>
+        
+        <!-- 概览统计卡片 -->
+        <div class="row mb-6">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <p class="text-sm font-medium opacity-75">总用户数</p>
+                                <h3 class="font-bold" id="total-users">--</h3>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs font-medium" id="user-growth">--</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users card-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <p class="text-sm font-medium opacity-75">活跃用户</p>
+                                <h3 class="font-bold" id="active-users">--</h3>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs font-medium" id="active-percentage">--</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-check card-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card stats-card bg-info text-white">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <p class="text-sm font-medium opacity-75">总帖子数</p>
+                                <h3 class="font-bold" id="total-posts">--</h3>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs font-medium" id="posts-per-day">--</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-edit card-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card stats-card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <p class="text-sm font-medium opacity-75">总评论数</p>
+                                <h3 class="font-bold" id="total-comments">--</h3>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs font-medium" id="comments-per-post">--</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-comments card-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图表区域 -->
+        <div class="row mb-6">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">用户增长趋势</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="userGrowthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">帖子发布趋势</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="postActivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分类统计和热门帖子 -->
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">分类分布</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">热门标签</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush" id="popular-tags">
+                            <!-- 热门标签将通过JavaScript动态加载 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">活跃用户</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush" id="active-users-list">
+                            <!-- 活跃用户将通过JavaScript动态加载 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载完成后获取统计数据
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取统计数据
+            fetch('/analytics/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新统计卡片
+                    document.getElementById('total-users').textContent = data.total_users.toLocaleString();
+                    document.getElementById('active-users').textContent = data.active_users.toLocaleString();
+                    document.getElementById('total-posts').textContent = data.total_posts.toLocaleString();
+                    document.getElementById('total-comments').textContent = data.total_comments.toLocaleString();
+                    
+                    document.getElementById('user-growth').textContent = `+${data.user_growth_percentage}% 相比上月`;
+                    document.getElementById('active-percentage').textContent = `${data.active_user_percentage}% 的总用户`;
+                    document.getElementById('posts-per-day').textContent = `${data.avg_posts_per_day.toFixed(1)} 篇/天`;
+                    document.getElementById('comments-per-post').textContent = `${data.avg_comments_per_post.toFixed(1)} 条/篇`;
+                    
+                    // 绘制用户增长图表
+                    createUserGrowthChart(data.user_growth_data);
+                    
+                    // 绘制帖子活动图表
+                    createPostActivityChart(data.post_activity_data);
+                    
+                    // 绘制分类分布图表
+                    createCategoryChart(data.category_distribution);
+                    
+                    // 填充热门标签
+                    fillPopularTags(data.popular_tags);
+                    
+                    // 填充活跃用户列表
+                    fillActiveUsers(data.active_users_list);
+                })
+                .catch(error => {
+                    console.error('获取统计数据失败:', error);
+                });
+        });
+        
+        // 创建用户增长图表
+        function createUserGrowthChart(data) {
+            const ctx = document.getElementById('userGrowthChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '新用户',
+                        data: data.new_users,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建帖子活动图表
+        function createPostActivityChart(data) {
+            const ctx = document.getElementById('postActivityChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '帖子数',
+                        data: data.posts,
+                        backgroundColor: '#28a745'
+                    }, {
+                        label: '评论数',
+                        data: data.comments,
+                        backgroundColor: '#17a2b8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建分类分布图表
+        function createCategoryChart(data) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.categories,
+                    datasets: [{
+                        data: data.counts,
+                        backgroundColor: [
+                            '#007bff', '#28a745', '#dc3545', '#ffc107',
+                            '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 填充热门标签
+        function fillPopularTags(tags) {
+            const container = document.getElementById('popular-tags');
+            container.innerHTML = '';
+            
+            tags.forEach(tag => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                listItem.innerHTML = `
+                    <span>${tag.name}</span>
+                    <span class="badge bg-primary rounded-pill">${tag.count}</span>
+                `;
+                container.appendChild(listItem);
+            });
+        }
+        
+        // 填充活跃用户列表
+        function fillActiveUsers(users) {
+            const container = document.getElementById('active-users-list');
+            container.innerHTML = '';
+            
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                listItem.innerHTML = `
+                    <span>${user.username}</span>
+                    <span class="text-sm text-muted">${user.posts} 帖子</span>
+                `;
+                container.appendChild(listItem);
+            });
+        }
+    </script>
+    {% endblock %}
+</body>
+</html>
