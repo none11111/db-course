@@ -309,4 +309,4 @@ A: 编辑 `app/utils/db_utils.py` 文件中的 `init_test_data()` 函数，可�
 
 如有任何问题或建议，请联系项目团队：
 - 项目邮箱：forum-analytics@example.com
-- GitHub仓库：https://github.com/your-repo/forum-analytics-platform
+- GitHub仓库：[https://github.com/your-repo/forum-analytics-platform](https://github.com/none11111/db-course/)
